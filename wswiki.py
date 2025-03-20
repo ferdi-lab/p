@@ -22,3 +22,24 @@ for p in parrafos:
 
 print("Primer párrafo de Albania en Wikipedia:")
 print(primer_parrafo)
+
+# Buscar la tabla de información (infobox)
+infobox = soup.find('table', class_='infobox')
+
+# Buscar la fila donde se menciona "km²"
+superficie = "No encontrada"
+if infobox:
+    for fila in infobox.find_all('tr'):  # Recorremos las filas de la tabla
+        encabezado = fila.find('th')  # Encuentra la cabecera de la fila
+        contenido = fila.find('td')  # Encuentra el contenido de la fila
+        
+        if encabezado and contenido:
+            encabezado_texto = encabezado.text.strip().lower()  # Convertimos a minúsculas
+            contenido_texto = contenido.text.strip()  # Texto del contenido
+            
+            if "km²" in contenido_texto:
+                superficie = contenido_texto
+                break  # Detenemos el bucle al encontrar la superficie total válida
+
+print("Superficie total de Albania en Wikipedia:")
+print(superficie)
