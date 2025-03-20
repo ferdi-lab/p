@@ -1,62 +1,61 @@
 import requests
 from bs4 import BeautifulSoup
+import re  # Para mejorar la detección de superficie y PIB
 
 # URL de la página de Albania en Wikipedia
 URL = "https://es.wikipedia.org/wiki/Albania"
 
-# Obtener la página
-response = requests.get(URL)
-soup = BeautifulSoup(response.text, 'html.parser')
+def obtener_soup(url):
+    """Realiza una solicitud a la URL y devuelve el objeto BeautifulSoup."""
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Lanza un error si la petición falla
+        return BeautifulSoup(response.text, 'html.parser')
+    except requests.RequestException as e:
+        print(f"Error al obtener la página: {e}")
+        return None
 
-# Encontrar todos los párrafos
-parrafos = soup.find_all('p')
-superficie = soup.find_all()
+def obtener_primer_parrafo(soup):
+    """Obtiene el primer párrafo con contenido de la página."""
+    if not soup:
+        return "No se encontró un párrafo válido."
+    
+    for p in soup.find_all('p'):
+        texto = p.text.strip()
+        if texto:
+            return texto
+    return "No se encontró un párrafo válido."
 
-# Buscar el primer párrafo con contenido
-primer_parrafo = "No se encontró un párrafo válido."
-for p in parrafos:
-    texto = p.text.strip()
-    if texto:  # Si el párrafo tiene contenido
-        primer_parrafo = texto
-        break
+def obtener_dato_infobox(soup, palabra_clave):
+    """Busca un dato en la infobox basado en una palabra clave."""
+    if not soup:
+        return "No encontrada"
+    
+    infobox = soup.find('table', class_='infobox')
+    if not infobox:
+        return "No encontrada"
 
-print("Primer párrafo de Albania en Wikipedia:")
-print(primer_parrafo)
+    for fila in infobox.find_all('tr'):
+        encabezado = fila.find('th')
+        contenido = fila.find('td')
 
-# Buscar la tabla de información (infobox)
-infobox = soup.find('table', class_='infobox')
-
-# Buscar la fila donde se menciona "km²" para encontrar la superficie total
-superficie = "No encontrada"
-if infobox:
-    for fila in infobox.find_all('tr'):  # Recorremos las filas de la tabla
-        encabezado = fila.find('th')  # Encuentra la cabecera de la fila
-        contenido = fila.find('td')  # Encuentra el contenido de la fila
-        
         if encabezado and contenido:
-            encabezado_texto = encabezado.text.strip().lower()  # Convertimos a minúsculas
-            contenido_texto = contenido.text.strip()  # Texto del contenido
-            
-            if "km²" in contenido_texto:
-                superficie = contenido_texto
-                break  # Detenemos el bucle al encontrar la superficie total válida
+            contenido_texto = contenido.text.strip()
+            # Usamos regex para buscar km² o PIB en cualquier parte del texto
+            if re.search(palabra_clave, contenido_texto, re.IGNORECASE):
+                return contenido_texto
 
-print("Superficie total de Albania en Wikipedia:")
-print(superficie)
+    return "No encontrada"
 
-# Buscar la fila donde se menciona "billion" para localizar el dato del PIB
-pib = "No encontrada"
-if infobox:
-    for fila in infobox.find_all('tr'):  # Recorremos las filas de la tabla
-        encabezado = fila.find('th')  # Encuentra la cabecera de la fila
-        contenido = fila.find('td')  # Encuentra el contenido de la fila
-        
-        if encabezado and contenido:
-            encabezado_texto = encabezado.text.strip().lower()  # Convertimos a minúsculas
-            contenido_texto = contenido.text.strip()  # Texto del contenido
-            
-            if "billion" in contenido_texto:
-                pib = contenido_texto
-                break  # Detenemos el bucle al encontrar el pib
-print("El producto interior bruto de Albania en Wikipedia:")
-print(pib)
+# Obtener el contenido de la página
+soup = obtener_soup(URL)
+
+# Extraer datos
+primer_parrafo = obtener_primer_parrafo(soup)
+superficie = obtener_dato_infobox(soup, r'km²')
+pib = obtener_dato_infobox(soup, r'\b(billion|PIB|PBI)\b')  # Captura distintas formas de referirse al PIB
+
+# Mostrar resultados
+print("📌 Primer párrafo de Albania en Wikipedia:\n", primer_parrafo)
+print("\n🌍 Superficie total de Albania:\n", superficie)
+print("\n💰 PIB de Albania:\n", pib)
